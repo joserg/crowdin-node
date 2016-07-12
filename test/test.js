@@ -6,10 +6,9 @@ var should = require('should');
 var stream = require('stream');
 
 var Crowdin = require('../');
-var config = {
-    endpointUrl: 'http://localhost:9999/test',
-    apiKey: '12345'
-};
+
+function allTests(intro, port, config) {
+
 var crowdin = new Crowdin(config);
 
 var api = express();
@@ -37,6 +36,9 @@ api.get('/test/ok', function(req, res) {
 api.get('/test/get', function(req, res) {
     req.query.should.have.property('key').equal(config.apiKey);
     req.query.should.have.property('json');
+    if (config.branch) {
+        req.query.should.have.property('branch').equal(config.branch);
+    }
     res.send();
 });
 
@@ -45,6 +47,9 @@ api.get('/test/get', function(req, res) {
 api.post('/test/post', bodyParser.urlencoded({extended: false}), function(req, res) {
     req.body.should.have.property('key').equal(config.apiKey);
     req.query.should.have.property('json');
+    if (config.branch) {
+        req.query.should.have.property('branch').equal(config.branch);
+    }
     res.send();
 });
 
@@ -81,17 +86,20 @@ api.get('/test/export', function(req, res) {
 
 var sendZip = 'yaml';
 api.get('/test/download/all.zip', function(req, res) {
+    if (config.branch) {
+        req.query.should.have.property('branch').equal(config.branch);
+    }
     fs.createReadStream(__dirname + '/' + sendZip + '.zip')
     .pipe(res);
 });
 
 // Start server
 
-api.listen(9999);
+api.listen(port);
 
 // Tests before/after
 
-var tmpDir = __dirname + '/temp';
+var tmpDir = __dirname + '/temp-' + port;
 
 before(function(done) {
     fs.exists(tmpDir, function(exists) {
@@ -103,6 +111,9 @@ before(function(done) {
 after(function(done) {
     del(tmpDir, done);
 });
+
+
+describe(intro, function() {
 
 // Tests
 
@@ -257,7 +268,7 @@ describe('#downloadToStream', function() {
 
 describe('#downloadToZip', function() {
     it('should download the ZIP file to the specified path', function(done) {
-        var toPath = __dirname + '/temp/test.zip';
+        var toPath = tmpDir + '/test.zip';
         crowdin.downloadToZip(toPath)
         .then(function() {
             fs.exists(toPath, function(exists) {
@@ -271,7 +282,7 @@ describe('#downloadToZip', function() {
 
 describe('#downloadToPath', function() {
     it('should download and extract the ZIP file to the specified path', function(done) {
-        var toPath = __dirname + '/temp/extract';
+        var toPath = tmpDir + '/extract';
         crowdin.downloadToPath(toPath)
         .then(function() {
             // Only check existence of one of the files, should be enough for a simple test
@@ -341,3 +352,28 @@ describe('#downloadToObject', function() {
         .catch(done);
     });
 });
+});
+}
+
+var port = 9999;
+allTests('No branch defined', port,
+    {
+        endpointUrl: 'http://localhost:'+port+'/test',
+        apiKey: '12345'
+    });
+
+port = 9998;
+allTests('Branch defined', port,
+    {
+        endpointUrl: 'http://localhost:'+port+'/test',
+        apiKey: '12345',
+        branch: 'test-branch'
+    });
+
+port = 9997;
+allTests('Branch empty defined', port,
+    {
+        endpointUrl: 'http://localhost:'+port+'/test',
+        apiKey: '12345',
+        branch: ''
+    });

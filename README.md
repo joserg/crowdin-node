@@ -24,6 +24,26 @@ var crowdin = new Crowdin({
 });
 ```
 
+And, in this fork, in order to handle the crowdin branchs, optionally is possible to set a `branch` parameter,
+
+```js
+var crowdin = new Crowdin({
+    apiKey: '7d38782fa7cb4b6a9fbae2de65e91989',
+    endpointUrl: 'https://api.crowdin.net/api/project/<your-project>',
+    branch: 'branch-name'
+});
+```
+
+to add the branch parameter to the real background crowdin api requests: 
+
+```js
+GET https://api.crowdin.com/api/project/{project-identifier}
+/export?key={project-key}&branch={branch-name}
+
+GET https://api.crowdin.com/api/project/{project-identifier}
+/download/{package}.zip?key={project-key}&branch={branch-name}
+```
+
 ## API
 
 ### .requestData(Object parameters)
